@@ -1,7 +1,8 @@
 'use client';
-import { useForm } from 'react-hook-form';
+import { Path, useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import { format } from 'date-fns';
+import { toast } from 'sonner';
 import { formValidationSchema } from '@/helpers/formValidationSchema';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -53,12 +54,54 @@ export default function Home() {
 	});
 
 	const {
-		formState: { isDirty, isValid, isLoading },
+		control,
+		reset,
+		handleSubmit,
+		formState: { isDirty, isValid, isSubmitting },
 	} = form;
 
+	const renderInputField = (
+		name: Path<IFormInput>,
+		label: string,
+		placeholder: string,
+		type: string = 'text',
+	) => (
+		<FormField
+			control={control}
+			name={name}
+			render={({ field }) => (
+				<FormItem>
+					<FormLabel>{label}</FormLabel>
+					<FormControl>
+						<Input
+							{...field}
+							placeholder={placeholder}
+							type={type}
+							value={field.value as string}
+						/>
+					</FormControl>
+					<FormMessage />
+				</FormItem>
+			)}
+		/>
+	);
+
 	const onSubmit = (data: IFormInput) => {
-		form.reset();
-		console.log(data);
+		return new Promise(() => {
+			setTimeout(() => {
+				toast.success('Реєстрація успішна');
+				toast(
+					<div className='flex flex-col'>
+						<span>{data.firstName}</span>
+						<span>{data.lastName}</span>
+						<span>{data.birthDate.toString()}</span>
+						<span>{data.email}</span>
+						<span>{data.password}</span>
+					</div>,
+				);
+				reset();
+			}, 1500);
+		});
 	};
 
 	return (
@@ -70,74 +113,24 @@ export default function Home() {
 				</CardHeader>
 				<CardContent>
 					<Form {...form}>
-						<form onSubmit={form.handleSubmit(onSubmit)}>
-							{/* firstName */}
+						<form onSubmit={handleSubmit(onSubmit)}>
+							{renderInputField('firstName', "Ім'я", "Ваше ім'я")}
+							{renderInputField('lastName', 'Прізвище', 'Ваше прізвище')}
+							{renderInputField(
+								'email',
+								'Електронна пошта',
+								'Ваша електронна пошта',
+								'email',
+							)}
+							{renderInputField(
+								'password',
+								'Пароль',
+								'Придумайте пароль',
+								'password',
+							)}
+
 							<FormField
-								control={form.control}
-								name='firstName'
-								render={({ field }) => (
-									<FormItem>
-										<FormLabel>{`Ім'я`}</FormLabel>
-										<FormControl>
-											<Input {...field} placeholder="Ваше ім'я" />
-										</FormControl>
-										<FormMessage />
-									</FormItem>
-								)}
-							/>
-							{/* lastName */}
-							<FormField
-								control={form.control}
-								name='lastName'
-								render={({ field }) => (
-									<FormItem className='mt-3'>
-										<FormLabel>Прізвище</FormLabel>
-										<FormControl>
-											<Input {...field} placeholder='Ваше прізвище' />
-										</FormControl>
-										<FormMessage />
-									</FormItem>
-								)}
-							/>
-							{/* email */}
-							<FormField
-								control={form.control}
-								name='email'
-								render={({ field }) => (
-									<FormItem className='mt-3'>
-										<FormLabel>Електронна пошта</FormLabel>
-										<FormControl>
-											<Input
-												{...field}
-												type='email'
-												placeholder='Ваша електронна пошта'
-											/>
-										</FormControl>
-										<FormMessage />
-									</FormItem>
-								)}
-							/>
-							{/* password */}
-							<FormField
-								control={form.control}
-								name='password'
-								render={({ field }) => (
-									<FormItem className='mt-3'>
-										<FormLabel>Пароль</FormLabel>
-										<FormControl>
-											<Input
-												{...field}
-												type='password'
-												placeholder='Придумайте пароль'
-											/>
-										</FormControl>
-										<FormMessage />
-									</FormItem>
-								)}
-							/>
-							{/* birthdate */}
-							<FormField
-								control={form.control}
+								control={control}
 								name='birthDate'
 								render={({ field }) => (
 									<FormItem className='flex flex-col mt-3'>
@@ -173,7 +166,7 @@ export default function Home() {
 							/>
 							{/* terms and conditions checkbox */}
 							<FormField
-								control={form.control}
+								control={control}
 								name='acceptTermsAndConditions'
 								render={({ field }) => (
 									<FormItem className='flex flex-row items-start space-x-3 space-y-0 p-2 mt-3'>
@@ -190,8 +183,11 @@ export default function Home() {
 								)}
 							/>
 							<div className='flex gap-2 mt-4 justify-between'>
-								<Button type='submit' disabled={!isDirty || !isValid}>
-									{!isLoading ? (
+								<Button
+									type='submit'
+									disabled={!isDirty || !isValid || isSubmitting}
+								>
+									{!isSubmitting ? (
 										<>
 											<CloudUpload className='mr-2 h-4 w-4' />
 											Надіслати
@@ -205,9 +201,9 @@ export default function Home() {
 								</Button>
 								<Button
 									type='button'
-									onClick={() => form.reset()}
+									onClick={() => reset()}
 									variant='destructive'
-									disabled={!isDirty}
+									disabled={!isDirty || isSubmitting}
 								>
 									<Eraser className='mr-2 h-4 w-4' />
 									Reset
